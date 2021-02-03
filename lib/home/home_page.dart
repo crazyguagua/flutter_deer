@@ -1,14 +1,19 @@
 
 import 'package:flutter/material.dart';
-import 'package:flutter_deer/goods/goods_page.dart';
+import 'package:flutter_deer/demo/demo_page.dart';
+import 'package:flutter_deer/goods/page/goods_page.dart';
 import 'package:flutter_deer/home/provider/home_provider.dart';
-import 'package:flutter_deer/order/order_page.dart';
+import 'package:flutter_deer/order/page/order_page.dart';
 import 'package:flutter_deer/res/resources.dart';
-import 'package:flutter_deer/shop/shop_page.dart';
-import 'package:flutter_deer/statistics/statistics_page.dart';
-import 'package:flutter_deer/util/image_utils.dart';
-import 'package:flutter_deer/util/toast.dart';
+import 'package:flutter_deer/shop/page/shop_page.dart';
+import 'package:flutter_deer/statistics/page/statistics_page.dart';
+import 'package:flutter_deer/util/app_navigator.dart';
+import 'package:flutter_deer/util/device_utils.dart';
+import 'package:flutter_deer/util/double_tap_back_exit_app.dart';
+import 'package:flutter_deer/util/theme_utils.dart';
+import 'package:flutter_deer/widgets/load_image.dart';
 import 'package:provider/provider.dart';
+import 'package:quick_actions/quick_actions.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -17,112 +22,155 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
 
-  var _pageList;
-  var _tabImages;
-  var _appBarTitles = ['订单', '商品', '统计', '店铺'];
-  final _pageController = PageController();
+  static const double _imageSize = 25.0;
+
+  List<Widget> _pageList;
+  final List<String> _appBarTitles = ['订单', '商品', '统计', '店铺'];
+  final PageController _pageController = PageController();
 
   HomeProvider provider = HomeProvider();
 
   List<BottomNavigationBarItem> _list;
-  
+  List<BottomNavigationBarItem> _listDark;
+
   @override
   void initState() {
     super.initState();
     initData();
+    initQuickActions();
   }
-  
-  void initData(){
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+
+  void initQuickActions() {
+    if (Device.isMobile) {
+      final QuickActions quickActions = QuickActions();
+      quickActions.initialize((String shortcutType) async {
+        if (shortcutType == 'demo') {
+          AppNavigator.push(context, DemoPage());
+        }
+      });
+
+      quickActions.setShortcutItems(<ShortcutItem>[
+        const ShortcutItem(
+          type: 'demo',
+          localizedTitle: 'Demo',
+        ),
+      ]);
+    }
+  }
+
+  void initData() {
     _pageList = [
-      Order(),
-      Goods(),
-      Statistics(),
-      Shop(),
+      OrderPage(),
+      GoodsPage(),
+      StatisticsPage(),
+      const ShopPage(),
     ];
+  }
 
-    _tabImages = [
-      [
-        loadAssetImage("home/icon_Order_n"),
-        loadAssetImage("home/icon_Order_s"),
-      ],
-      [
-        loadAssetImage("home/icon_commodity_n"),
-        loadAssetImage("home/icon_commodity_s"),
-      ],
-      [
-        loadAssetImage("home/icon_statistics_n"),
-        loadAssetImage("home/icon_statistics_s"),
-      ],
-      [
-        loadAssetImage("home/icon_Shop_n"),
-        loadAssetImage("home/icon_Shop_s"),
-      ]
-    ];
-
-    _list = List.generate(4, (i){
-      return BottomNavigationBarItem(
+  List<BottomNavigationBarItem> _buildBottomNavigationBarItem() {
+    if (_list == null) {
+      const _tabImages = [
+        [
+          LoadAssetImage('home/icon_order', width: _imageSize, color: Colours.unselected_item_color,),
+          LoadAssetImage('home/icon_order', width: _imageSize, color: Colours.app_main,),
+        ],
+        [
+          LoadAssetImage('home/icon_commodity', width: _imageSize, color: Colours.unselected_item_color,),
+          LoadAssetImage('home/icon_commodity', width: _imageSize, color: Colours.app_main,),
+        ],
+        [
+          LoadAssetImage('home/icon_statistics', width: _imageSize, color: Colours.unselected_item_color,),
+          LoadAssetImage('home/icon_statistics', width: _imageSize, color: Colours.app_main,),
+        ],
+        [
+          LoadAssetImage('home/icon_shop', width: _imageSize, color: Colours.unselected_item_color,),
+          LoadAssetImage('home/icon_shop', width: _imageSize, color: Colours.app_main,),
+        ]
+      ];
+      _list = List.generate(_tabImages.length, (i) {
+        return BottomNavigationBarItem(
           icon: _tabImages[i][0],
           activeIcon: _tabImages[i][1],
-          title: Padding(
-            padding: const EdgeInsets.only(top: 5.0),
-            child: Text(_appBarTitles[i]),
-          )
-      );
-    });
+          label: _appBarTitles[i],
+        );
+      });
+    }
+    return _list;
   }
 
-  DateTime  _lastTime;
-  
-  Future<bool> _isExit(){
-    if (_lastTime == null || DateTime.now().difference(_lastTime) > Duration(milliseconds: 2500)) {
-      _lastTime = DateTime.now();
-      Toast.show("再次点击退出应用");
-      return Future.value(false);
-    } 
-    Toast.cancelToast();
-    return Future.value(true);
+  List<BottomNavigationBarItem> _buildDarkBottomNavigationBarItem() {
+    if (_listDark == null) {
+      const _tabImagesDark = [
+        [
+          LoadAssetImage('home/icon_order', width: _imageSize),
+          LoadAssetImage('home/icon_order', width: _imageSize, color: Colours.dark_app_main,),
+        ],
+        [
+          LoadAssetImage('home/icon_commodity', width: _imageSize),
+          LoadAssetImage('home/icon_commodity', width: _imageSize, color: Colours.dark_app_main,),
+        ],
+        [
+          LoadAssetImage('home/icon_statistics', width: _imageSize),
+          LoadAssetImage('home/icon_statistics', width: _imageSize, color: Colours.dark_app_main,),
+        ],
+        [
+          LoadAssetImage('home/icon_shop', width: _imageSize),
+          LoadAssetImage('home/icon_shop', width: _imageSize, color: Colours.dark_app_main,),
+        ]
+      ];
+
+      _listDark = List.generate(_tabImagesDark.length, (i) {
+        return BottomNavigationBarItem(
+          icon: _tabImagesDark[i][0],
+          activeIcon: _tabImagesDark[i][1],
+          label: _appBarTitles[i],
+        );
+      });
+    }
+    return _listDark;
   }
-  
+
   @override
   Widget build(BuildContext context) {
+    final bool isDark = context.isDark;
     return ChangeNotifierProvider<HomeProvider>(
-      builder: (_) => provider,
-      child: WillPopScope(
-        onWillPop: _isExit,
+      create: (_) => provider,
+      child: DoubleTapBackExitApp(
         child: Scaffold(
           bottomNavigationBar: Consumer<HomeProvider>(
-            builder: (_, provider, __){
+            builder: (_, provider, __) {
               return BottomNavigationBar(
-                backgroundColor: Colors.white,
-                items: _list,
+                backgroundColor: context.backgroundColor,
+                items: isDark ? _buildDarkBottomNavigationBarItem() : _buildBottomNavigationBarItem(),
                 type: BottomNavigationBarType.fixed,
                 currentIndex: provider.value,
                 elevation: 5.0,
                 iconSize: 21.0,
                 selectedFontSize: Dimens.font_sp10,
                 unselectedFontSize: Dimens.font_sp10,
-                selectedItemColor: Colours.app_main,
-                unselectedItemColor: Color(0xffbfbfbf),
-                onTap: (index){
-                  _pageController.jumpToPage(index);
-                },
+                selectedItemColor: Theme.of(context).primaryColor,
+                unselectedItemColor: isDark ? Colours.dark_unselected_item_color : Colours.unselected_item_color,
+                onTap: (index) => _pageController.jumpToPage(index),
               );
             },
           ),
           // 使用PageView的原因参看 https://zhuanlan.zhihu.com/p/58582876
           body: PageView(
+            physics: const NeverScrollableScrollPhysics(), // 禁止滑动
             controller: _pageController,
-            onPageChanged: _onPageChanged,
+            onPageChanged: (int index) => provider.value = index,
             children: _pageList,
-            physics: NeverScrollableScrollPhysics(), // 禁止滑动
           )
         ),
       ),
     );
-  }
-
-  void _onPageChanged(int index) {
-    provider.value = index;
   }
 
 }

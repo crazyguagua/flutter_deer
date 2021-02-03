@@ -1,23 +1,23 @@
 
 import 'package:fluro/fluro.dart';
-import 'package:flutter_deer/routers/router_init.dart';
+import 'package:flutter_deer/routers/i_router.dart';
 
-import 'goods_statistics_page.dart';
-import 'order_statistics_page.dart';
+import 'page/goods_statistics_page.dart';
+import 'page/order_statistics_page.dart';
 
 
 class StatisticsRouter implements IRouterProvider{
 
-  static String orderStatisticsPage = "/statistics/order";
-  static String goodsStatisticsPage = "/statistics/goods";
+  static String orderStatisticsPage = '/statistics/order';
+  static String goodsStatisticsPage = '/statistics/goods';
   
   @override
-  void initRouter(Router router) {
-    router.define(orderStatisticsPage, handler: Handler(handlerFunc: (_, params){
-      int index = int.parse(params['index']?.first);
+  void initRouter(FluroRouter router) {
+    router.define(orderStatisticsPage, handler: Handler(handlerFunc: (_, params) {
+      final int index = int.parse(params['index']?.first);
       return OrderStatisticsPage(index);
     }));
-    router.define(goodsStatisticsPage, handler: Handler(handlerFunc: (_, params) => GoodsStatisticsPage()));
+    router.define(goodsStatisticsPage, handler: Handler(handlerFunc: (_, __) => GoodsStatisticsPage()));
   }
   
 }

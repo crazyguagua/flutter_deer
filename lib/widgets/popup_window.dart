@@ -1,12 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_deer/routers/fluro_navigator.dart';
 
 ///create by elileo on 2018/12/21
 ///https://github.com/elileo1/flutter_travel_friends/blob/master/lib/widget/PopupWindow.dart
 ///
 /// weilu update： 去除了IntrinsicWidth限制，添加了默认蒙版
-const Duration _kWindowDuration = const Duration(milliseconds: 0);
+const Duration _kWindowDuration = Duration(milliseconds: 300);
 const double _kWindowCloseIntervalEnd = 2.0 / 3.0;
 const double _kWindowMaxWidth = 240.0;
 const double _kWindowMinWidth = 48.0;
@@ -18,7 +17,7 @@ Future<T> showPopupWindow<T>({
   @required BuildContext context,
   RelativeRect position,
   @required Widget child,
-  double elevation: 8.0,
+  double elevation = 8.0,
   String semanticLabel,
   bool fullWidth,
   bool isShowBg = false,
@@ -27,16 +26,18 @@ Future<T> showPopupWindow<T>({
   String label = semanticLabel;
   switch (defaultTargetPlatform) {
     case TargetPlatform.iOS:
+    case TargetPlatform.macOS:
       label = semanticLabel;
       break;
     case TargetPlatform.android:
     case TargetPlatform.fuchsia:
+    case TargetPlatform.linux:
+    case TargetPlatform.windows:
       label = semanticLabel ?? MaterialLocalizations.of(context)?.popupMenuLabel;
   }
 
   return Navigator.push(context,
-      new _PopupWindowRoute(
-        context: context,
+      _PopupWindowRoute(
         position: position,
         child: child,
         elevation: elevation,
@@ -52,19 +53,16 @@ Future<T> showPopupWindow<T>({
 ///自定义弹窗路由：参照_PopupMenuRoute修改的
 class _PopupWindowRoute<T> extends PopupRoute<T> {
   _PopupWindowRoute({
-    @required BuildContext context,
     RouteSettings settings,
     this.child,
     this.position,
-    this.elevation: 8.0,
+    this.elevation = 8.0,
     this.theme,
     this.barrierLabel,
     this.semanticLabel,
     this.fullWidth,
     this.isShowBg,
-  }) : super(settings: settings) {
-    assert(child != null);
-  }
+  }) : super(settings: settings);
 
   final Widget child;
   final RelativeRect position;
@@ -88,7 +86,7 @@ class _PopupWindowRoute<T> extends PopupRoute<T> {
 
   @override
   Animation<double> createAnimation() {
-    return new CurvedAnimation(
+    return CurvedAnimation(
         parent: super.createAnimation(),
         curve: Curves.linear,
         reverseCurve: const Interval(0.0, _kWindowCloseIntervalEnd));
@@ -97,36 +95,35 @@ class _PopupWindowRoute<T> extends PopupRoute<T> {
   @override
   Widget buildPage(BuildContext context, Animation<double> animation,
       Animation<double> secondaryAnimation) {
-    Widget win = new _PopupWindow<T>(
+    Widget win = _PopupWindow<T>(
       route: this,
       semanticLabel: semanticLabel,
       fullWidth: fullWidth,
     );
     if (theme != null) {
-      win = new Theme(data: theme, child: win);
+      win = Theme(data: theme, child: win);
     }
 
-    return new MediaQuery.removePadding(
+    return MediaQuery.removePadding(
       context: context,
       removeTop: true,
       removeBottom: true,
       removeLeft: true,
       removeRight: true,
-      child: new Builder(
+      child: Builder(
         builder: (BuildContext context) {
-          return Material(
-            type: MaterialType.transparency,
-            child: GestureDetector(
-              onTap: (){
-                NavigatorUtils.goBack(context);
-              },
+          return GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Material(
+              type: MaterialType.transparency,
               child: Container(
                 width: double.infinity,
                 height: double.infinity,
-                color: isShowBg ? Color(0x99000000) : null,
-                child: new CustomSingleChildLayout(
-                  delegate: new _PopupWindowLayoutDelegate(
-                      position, null, Directionality.of(context)),
+                color: isShowBg ? const Color(0x99000000) : null,
+                child: CustomSingleChildLayout(
+                  delegate: _PopupWindowLayoutDelegate(
+                    position, null, Directionality.of(context)
+                  ),
                   child: win,
                 ),
               ),
@@ -144,7 +141,7 @@ class _PopupWindow<T> extends StatelessWidget {
     Key key,
     this.route,
     this.semanticLabel,
-    this.fullWidth: false,
+    this.fullWidth = false,
   }) : super(key: key);
 
   final _PopupWindowRoute<T> route;
@@ -153,40 +150,38 @@ class _PopupWindow<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double length = 10.0;
-    final double unit = 1.0 /
+    const double length = 10.0;
+    const double unit = 1.0 /
         (length + 1.5); // 1.0 for the width and 0.5 for the last item's fade.
 
-    final CurveTween opacity =
-    new CurveTween(curve: const Interval(0.0, 1.0 / 3.0));
-    final CurveTween width = new CurveTween(curve: new Interval(0.0, unit));
-    final CurveTween height = new CurveTween(curve: new Interval(0.0, unit * length));
+    final CurveTween opacity = CurveTween(curve: const Interval(0.0, 1.0 / 3.0));
+    final CurveTween width = CurveTween(curve: const Interval(0.0, unit));
+    final CurveTween height = CurveTween(curve: const Interval(0.0, unit * length));
 
-    final Widget child = new ConstrainedBox(
-      constraints: new BoxConstraints(
+    final Widget child = ConstrainedBox(
+      constraints: BoxConstraints(
         minWidth: fullWidth ? double.infinity : _kWindowMinWidth,
         maxWidth: fullWidth ? double.infinity : _kWindowMaxWidth,
       ),
-      child: new SingleChildScrollView(
-        padding:
-        const EdgeInsets.symmetric(vertical: _kWindowVerticalPadding),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: _kWindowVerticalPadding),
         child: route.child,
       )
     );
 
-    return new AnimatedBuilder(
+    return AnimatedBuilder(
       animation: route.animation,
       builder: (BuildContext context, Widget child) {
-        return new Opacity(
+        return Opacity(
           opacity: opacity.evaluate(route.animation),
-          child: new Material(
+          child: Material(
             type: route.elevation == 0 ? MaterialType.transparency : MaterialType.card,
             elevation: route.elevation,
-            child: new Align(
+            child: Align(
               alignment: AlignmentDirectional.topEnd,
               widthFactor: width.evaluate(route.animation),
               heightFactor: height.evaluate(route.animation),
-              child: new Semantics(
+              child: Semantics(
                 scopesRoute: true,
                 namesRoute: true,
                 explicitChildNodes: true,
@@ -215,8 +210,8 @@ class _PopupWindowLayoutDelegate extends SingleChildLayoutDelegate {
   BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
     // The menu can be at most the size of the overlay minus 8.0 pixels in each
     // direction.
-    return new BoxConstraints.loose(constraints.biggest -
-        const Offset(_kWindowScreenPadding * 2.0, _kWindowScreenPadding * 2.0));
+    return BoxConstraints.loose(constraints.biggest -
+        const Offset(_kWindowScreenPadding * 2.0, _kWindowScreenPadding * 2.0) as Size);
   }
 
   @override
@@ -266,7 +261,7 @@ class _PopupWindowLayoutDelegate extends SingleChildLayoutDelegate {
       y = _kWindowScreenPadding;
     else if (y + childSize.height > size.height - _kWindowScreenPadding)
       y = size.height - childSize.height - _kWindowScreenPadding;
-    return new Offset(x, y);
+    return Offset(x, y);
   }
 
   @override
